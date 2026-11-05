@@ -1,0 +1,6 @@
+-> {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "list_databases", "arguments": {}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}, "io.modelcontextprotocol/clientInfo": {"name": "raw-client", "version": "0.1"}}}}
+   (no message within 8s)
+
+=> no response after 8.01s: the client gives up and closes stdin
+<- (after close) {"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"Connection closed"}}
+=> 16.39s after launch the server cancelled the abandoned request: -32000 'Connection closed', which looks like a server failure
