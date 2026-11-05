@@ -1,0 +1,37 @@
+Downloading pygments (1.2MiB)
+Downloading beartype (1.5MiB)
+Downloading cryptography (3.7MiB)
+Downloading pydantic-core (2.0MiB)
+ Downloaded pygments
+ Downloaded beartype
+ Downloaded pydantic-core
+ Downloaded cryptography
+Installed 71 packages in 95ms
+2026-11-05 15:10:29,141 - mcp-clickhouse - INFO - ClickHouse tools registered
+2026-11-05 15:10:29,317 - httpx2 - INFO - HTTP Request: GET https://pypi.org/pypi/fastmcp/json "HTTP/1.1 200 OK"
+
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                                                                              │
+│                         ▄▀▀ ▄▀█ █▀▀ ▀█▀ █▀▄▀█ █▀▀ █▀█                        │
+│                         █▀  █▀█ ▄▄█  █  █ ▀ █ █▄▄ █▀▀                        │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                FastMCP 4.0.11                                │
+│                            https://gofastmcp.com                             │
+│                                                                              │
+│                  🖥  Server:      mcp-clickhouse, 0.7.0                       │
+│                  🚀 Deploy free: https://horizon.prefect.io                  │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                          🎉 Update available: 4.1.6                          │
+│                      Run: pip install --upgrade fastmcp                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+[11/05/26 15:10:29] INFO     Starting MCP server                transport.py:242
+                             'mcp-clickhouse' with transport                    
+                             'stdio'                                            
