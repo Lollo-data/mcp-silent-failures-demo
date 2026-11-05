@@ -1,0 +1,13 @@
+[project]
+name = "mcp-silent-failures-demo"
+version = "0.1.0"
+description = "Reproducible demos of MCP failures that produce no clear error"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp==4.1.6",
+    "mcp==2.3.0",
+]
+
+[tool.uv]
+package = false

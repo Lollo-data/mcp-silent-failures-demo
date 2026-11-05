@@ -1,0 +1,77 @@
+2026-11-05 15:10:29,947 - mcp-clickhouse - INFO - ClickHouse tools registered
+
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                                                                              │
+│                         ▄▀▀ ▄▀█ █▀▀ ▀█▀ █▀▄▀█ █▀▀ █▀█                        │
+│                         █▀  █▀█ ▄▄█  █  █ ▀ █ █▄▄ █▀▀                        │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                FastMCP 4.0.11                                │
+│                            https://gofastmcp.com                             │
+│                                                                              │
+│                  🖥  Server:      mcp-clickhouse, 0.7.0                       │
+│                  🚀 Deploy free: https://horizon.prefect.io                  │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                          🎉 Update available: 4.1.6                          │
+│                      Run: pip install --upgrade fastmcp                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+[11/05/26 15:10:29] INFO     Starting MCP server                transport.py:242
+                             'mcp-clickhouse' with transport                    
+                             'stdio'                                            
+2026-11-05 15:10:30,347 - mcp-clickhouse - INFO - Listing all databases
+2026-11-05 15:10:30,347 - mcp-clickhouse - WARNING - CLICKHOUSE_PORT=9000 is a native TCP protocol port (clickhouse-client). mcp-clickhouse uses the HTTP interface; prefer 8123 (HTTP) or 8443 (HTTPS).
+2026-11-05 15:10:30,347 - mcp-clickhouse - INFO - Creating ClickHouse client connection to localhost:9000 as default (secure=False, verify=True, connect_timeout=30s, send_receive_timeout=35s)
+2026-11-05 15:10:30,351 - mcp-clickhouse - ERROR - Failed to connect to ClickHouse: HTTP driver received HTTP status 400, server response: Port 9000 is for clickhouse-client program
+You must use port 8123 for HTTP.
+You can also use the /play endpoint for interactive queries
+and the /dashboard endpoint for the Dashboard. (for url http://localhost:9000)
+Hint: CLICKHOUSE_PORT=9000 looks like ClickHouse's native TCP protocol port (used by clickhouse-client). This server uses the HTTP interface — set CLICKHOUSE_PORT to 8123 (HTTP) or 8443 (HTTPS), or your deployment's HTTP mapping. Do not use native ports 9000/9440.
+[11/05/26 15:10:30] Error calling tool 'list_databases'                         
+                    ╭─────────── Traceback (most recent call last) ────────────╮
+                    │ /Users/lorenzoiantosca/.cache/uv/archive-v0/eScFPf2A52PP │
+                    │ QUlq/lib/python3.14/site-packages/fastmcp/server/server. │
+                    │ py:1467 in call_tool                                     │
+                    │                                                          │
+                    │ /Users/lorenzoiantosca/.cache/uv/archive-v0/eScFPf2A52PP │
+                    │ QUlq/lib/python3.14/site-packages/fastmcp/tools/base.py: │
+                    │ 440 in _run                                              │
+                    │                                                          │
+                    │                 ... 21 frames hidden ...                 │
+                    │                                                          │
+                    │ /Users/lorenzoiantosca/.cache/uv/archive-v0/eScFPf2A52PP │
+                    │ QUlq/lib/python3.14/site-packages/clickhouse_connect/dri │
+                    │ ver/_backend/http_sync.py:419 in request                 │
+                    │                                                          │
+                    │   416 │   │   │   elif error_handler is not None:        │
+                    │   417 │   │   │   │   error_handler(response)            │
+                    │   418 │   │   │   else:                                  │
+                    │ ❱ 419 │   │   │   │   self.error_handler(response)       │
+                    │   420 │                                                  │
+                    │   421 │   def ping(self, timeout: float | None = None) - │
+                    │   422 │   │   if timeout is not None and not timeout > 0 │
+                    │                                                          │
+                    │ /Users/lorenzoiantosca/.cache/uv/archive-v0/eScFPf2A52PP │
+                    │ QUlq/lib/python3.14/site-packages/clickhouse_connect/dri │
+                    │ ver/_backend/http_sync.py:133 in error_handler           │
+                    │                                                          │
+                    │   130 │   │   │   │   logger.warning("Failed to read err │
+                    │   131 │   │   finally:                                   │
+                    │   132 │   │   │   response.close()                       │
+                    │ ❱ 133 │   │   raise build_http_error(                    │
+                    │   134 │   │   │   response.status,                       │
+                    │   135 │   │   │   response.headers.get(ex_header),       │
+                    │   136 │   │   │   full_body,                             │
+                    ╰──────────────────────────────────────────────────────────╯
+                    DatabaseError: HTTP driver received HTTP status 400, server 
+                    response: Port 9000 is for clickhouse-client program        
+                    You must use port 8123 for HTTP.                            
+                    You can also use the /play endpoint for interactive queries 
+                    and the /dashboard endpoint for the Dashboard. (for url     
+                    http://localhost:9000)                                      

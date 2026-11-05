@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Local ClickHouse (binary and data live here, never in git)
+.clickhouse/
+clickhouse
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
