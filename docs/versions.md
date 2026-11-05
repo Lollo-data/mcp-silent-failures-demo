@@ -9,6 +9,7 @@ Checked on 5 November 2026.
 | MCP Python SDK | 2.3.0 | Diverts fd 1 to stderr while serving; restores it on exit |
 | MCP Python SDK (legacy) | 1.30.0 | No stdout guard |
 | mcp-clickhouse | 0.7.0 | Bundles FastMCP 4.0.11; HTTP interface only (8123/8443) |
+| ClickHouse (Docker image) | 26.10.3.7 | `clickhouse/clickhouse-server`, pinned in `docker-compose.yml` |
 
 ## Observations
 

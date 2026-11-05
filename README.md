@@ -15,7 +15,17 @@ Requires [uv](https://docs.astral.sh/uv/).
 uv sync
 ```
 
-Bugs 04 and 05 also need a local ClickHouse. Without Docker:
+Bugs 04 and 05 also need a local ClickHouse on ports 8123 and 9000.
+Bugs 01 to 03 do not.
+
+With Docker:
+
+```bash
+docker compose up -d --wait
+docker compose down        # when you are done
+```
+
+Without Docker (macOS and Linux; downloads a single binary into `.clickhouse/`):
 
 ```bash
 ./scripts/clickhouse.sh
