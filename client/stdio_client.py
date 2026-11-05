@@ -25,12 +25,18 @@ def meta(version: str = PROTOCOL_VERSION) -> dict:
 class RawStdioClient:
     """Spawns an MCP server and talks to it line by line, logging the transcript."""
 
-    def __init__(self, cmd: list[str], env: dict | None = None, show_stderr: bool = False):
+    def __init__(self, cmd: list[str], env: dict | None = None, show_stderr: bool = False,
+                 stderr_file=None):
+        """stderr goes to stderr_file if given, else to the terminal or nowhere."""
+        if stderr_file is not None:
+            stderr = stderr_file
+        else:
+            stderr = None if show_stderr else subprocess.DEVNULL
         self.proc = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=None if show_stderr else subprocess.DEVNULL,
+            stderr=stderr,
             env=env,
             text=True,
             bufsize=1,

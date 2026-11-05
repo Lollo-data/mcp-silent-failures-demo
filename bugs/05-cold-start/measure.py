@@ -1,20 +1,36 @@
-"""Bug 05: how long a uvx-launched MCP server takes to answer its first request.
+"""Bug 05: cold start of a uvx-launched MCP server.
 
-Measures only the time from spawn to the first response, so cold and warm
-starts can be compared.
+Two modes:
 
-    uv cache clean                                     # cold
-    uv run python bugs/05-cold-start/measure.py
-    uv run python bugs/05-cold-start/measure.py        # warm, repeat a few times
+  measure     wait as long as it takes and report the time to the first
+              response, so cold and warm starts can be compared
+  --timeout   behave like a client with a startup timeout: if no response
+              arrives in time, give up and close stdin, then show what the
+              server sends back once it finally starts
 
-Needs a local ClickHouse on 8123 (scripts/clickhouse.sh).
+    uv cache clean                                              # make it cold
+    uv run python bugs/05-cold-start/measure.py                 # measure
+    uv run python bugs/05-cold-start/measure.py --timeout 8     # reproduce the failure
+    uv run python bugs/05-cold-start/measure.py --timeout 8 --tool-call
+
+By default the request is server/discover, which does not touch the database,
+so ClickHouse is optional. --tool-call sends list_databases, the call of the
+original incident, and needs ClickHouse on 8123.
 """
 
+import argparse
 import json
 import os
-import subprocess
+import sys
 import time
+from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from client.stdio_client import RawStdioClient, meta  # noqa: E402
+
+SERVER = ["uvx", "mcp-clickhouse"]
 ENV = dict(
     os.environ,
     CLICKHOUSE_HOST="localhost",
@@ -23,23 +39,46 @@ ENV = dict(
     CLICKHOUSE_USER="default",
     CLICKHOUSE_PASSWORD="",
 )
-META = {
-    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-    "io.modelcontextprotocol/clientCapabilities": {},
+DISCOVER = {"jsonrpc": "2.0", "id": 1, "method": "server/discover", "params": {"_meta": meta()}}
+TOOL_CALL = {
+    "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+    "params": {"name": "list_databases", "arguments": {}, "_meta": meta()},
 }
-REQUEST = {"jsonrpc": "2.0", "id": 1, "method": "server/discover", "params": {"_meta": META}}
+NO_LIMIT = 300.0  # seconds; generous enough for a cold download
 
-start = time.monotonic()
-proc = subprocess.Popen(
-    ["uvx", "mcp-clickhouse"],
-    stdin=subprocess.PIPE,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.DEVNULL,
-    env=ENV,
-    text=True,
-)
-proc.stdin.write(json.dumps(REQUEST) + "\n")
-proc.stdin.flush()
-first_line = proc.stdout.readline()
-print(f"{time.monotonic() - start:.2f}s  {first_line.strip()[:70]}")
-proc.kill()
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--timeout", type=float, help="give up after this many seconds")
+    parser.add_argument("--tool-call", action="store_true",
+                        help="send tools/call list_databases instead of server/discover "
+                             "(needs ClickHouse on 8123)")
+    args = parser.parse_args()
+
+    start = time.monotonic()
+    client = RawStdioClient(SERVER, env=ENV)
+    client.send(TOOL_CALL if args.tool_call else DISCOVER)
+    response = client.wait_for(1, timeout=args.timeout or NO_LIMIT)
+    waited = time.monotonic() - start
+
+    if response is not None:
+        client.close()
+        print(f"\n=> first response after {waited:.2f}s")
+        return
+
+    print(f"\n=> no response after {waited:.2f}s: the client gives up and closes stdin")
+    late = client.close(grace=NO_LIMIT)
+    total = time.monotonic() - start
+    message = next((json.loads(line) for line in late if line.startswith("{")), None)
+    if message is None:
+        print(f"=> the server exited after {total:.2f}s without answering")
+    elif "error" in message:
+        error = message["error"]
+        print(f"=> {total:.2f}s after launch the server cancelled the abandoned request: "
+              f"{error['code']} {error['message']!r}, which looks like a server failure")
+    else:
+        print(f"=> {total:.2f}s after launch the server answered a request nobody is waiting for")
+
+
+if __name__ == "__main__":
+    main()

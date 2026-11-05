@@ -1,19 +1,23 @@
 """Bug 03: a debug print() in a tool and stdout, the protocol channel.
 
-Three cases, same print():
+Same print(), four cases. For each one the demo counts where the debug line
+ends up: on stdout (the protocol channel), on stderr, or nowhere.
 
-  sdk1    MCP SDK 1.x with PYTHONUNBUFFERED=1 (common in Docker images):
-          the line lands on the wire before the response.
-  broken  MCP SDK 2.x guards stdout while serving, but a buffered print
-          escapes at shutdown, after the guard is lifted.
-  fixed   log to stderr: nothing but JSON-RPC on stdout.
+  sdk1           MCP SDK 1.x with PYTHONUNBUFFERED=1 (common in Docker images):
+                 the line lands on the wire before the response.
+  sdk1-buffered  MCP SDK 1.x, default buffering: the SDK closes the real
+                 stdout on shutdown, so the buffered line is silently lost.
+  broken         MCP SDK 2.x guards stdout while serving, but a buffered line
+                 escapes at shutdown, after the guard is lifted.
+  fixed          log to stderr: nothing but JSON-RPC on stdout.
 
-    uv run python bugs/03-stdout-pollution/run.py            # all three
+    uv run python bugs/03-stdout-pollution/run.py            # all four
     uv run python bugs/03-stdout-pollution/run.py sdk1       # just one
 """
 
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +26,8 @@ sys.path.insert(0, str(ROOT))
 from client.stdio_client import RawStdioClient, describe, meta  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
+MARKER = "validating"  # appears in every debug line and log line of the servers
+VARIANTS = ("sdk1", "sdk1-buffered", "broken", "fixed")
 
 
 def env_with(unbuffered: bool) -> dict:
@@ -39,10 +45,10 @@ def call_tool(client: RawStdioClient, request_id: int, sql: str, with_meta: bool
     client.wait_for(request_id)
 
 
-def run_sdk1() -> RawStdioClient:
+def run_sdk1(unbuffered: bool, stderr_file) -> RawStdioClient:
     server = ["uv", "run", "--no-project", "--quiet", "--with", "mcp<2",
               "python", str(HERE / "server_sdk1_broken.py")]
-    client = RawStdioClient(server, env=env_with(unbuffered=True))
+    client = RawStdioClient(server, env=env_with(unbuffered), stderr_file=stderr_file)
     client.send({
         "jsonrpc": "2.0", "id": 1, "method": "initialize",
         "params": {"protocolVersion": "2025-06-18", "capabilities": {},
@@ -54,9 +60,9 @@ def run_sdk1() -> RawStdioClient:
     return client
 
 
-def run_sdk2(variant: str) -> RawStdioClient:
+def run_sdk2(variant: str, stderr_file) -> RawStdioClient:
     server = [sys.executable, str(HERE / f"server_{variant}.py")]
-    client = RawStdioClient(server, env=env_with(unbuffered=False))
+    client = RawStdioClient(server, env=env_with(unbuffered=False), stderr_file=stderr_file)
     call_tool(client, 1, "SELECT 1", with_meta=True)
     call_tool(client, 2, "SELECT 2", with_meta=True)
     return client
@@ -64,15 +70,31 @@ def run_sdk2(variant: str) -> RawStdioClient:
 
 def run(variant: str) -> None:
     print(f"\n=== {variant.upper()}")
-    client = run_sdk1() if variant == "sdk1" else run_sdk2(variant)
-    client.close()
-    stray = [line for line in client.transcript if describe(line).startswith("!!")]
-    print(f"lines on stdout that are not JSON-RPC: {len(stray)}")
+    with tempfile.TemporaryFile(mode="w+") as stderr_file:
+        if variant == "sdk1":
+            client = run_sdk1(unbuffered=True, stderr_file=stderr_file)
+        elif variant == "sdk1-buffered":
+            client = run_sdk1(unbuffered=False, stderr_file=stderr_file)
+        else:
+            client = run_sdk2(variant, stderr_file)
+        client.close()
+        stderr_file.seek(0)
+        on_stderr = sum(MARKER in line for line in stderr_file)
+
+    on_stdout = sum(MARKER in line for line in client.transcript if describe(line).startswith("!!"))
+    print(f"debug lines on stdout (protocol channel): {on_stdout}")
+    print(f"debug lines on stderr:                    {on_stderr}")
+    if on_stdout:
+        print("=> the protocol channel is polluted")
+    elif not on_stderr:
+        print("=> the debug output is lost: it reached neither stream")
+    else:
+        print("=> clean: debug output on stderr only")
 
 
 if __name__ == "__main__":
-    variants = sys.argv[1:] or ["sdk1", "broken", "fixed"]
+    variants = sys.argv[1:] or list(VARIANTS)
     for variant in variants:
-        if variant not in ("sdk1", "broken", "fixed"):
-            sys.exit("usage: run.py [sdk1|broken|fixed ...]")
+        if variant not in VARIANTS:
+            sys.exit(f"usage: run.py [{'|'.join(VARIANTS)} ...]")
         run(variant)
