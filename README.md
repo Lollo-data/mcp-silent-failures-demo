@@ -36,9 +36,9 @@ Without Docker (macOS and Linux; downloads a single binary into `.clickhouse/`):
 | Folder | Failure | Run |
 | --- | --- | --- |
 | `bugs/01-protocol-dialect` | A request in neither protocol dialect gets an error that does not say what is missing | `uv run python bugs/01-protocol-dialect/run.py` |
-| `bugs/02-request-ids` | Responses matched to the wrong request | *coming next* |
+| `bugs/02-request-ids` | Responses matched to the wrong request: a fast answer overtakes a slow one and the `DROP TABLE` is marked valid | `uv run python bugs/02-request-ids/run.py` |
 | `bugs/03-stdout-pollution` | A debug `print()` reaches the protocol channel, or vanishes (four cases: SDK 1.x unbuffered and buffered, SDK 2.x, fixed) | `uv run python bugs/03-stdout-pollution/run.py` |
-| `bugs/04-tool-errors` | A tool error arrives as a successful result | *coming next* (evidence in `evidence/`) |
+| `bugs/04-tool-errors` | A tool error arrives as a successful result (`isError: true`) and a client that checks only `error` passes it to the model | `docker compose up -d --wait`, then `uv run python bugs/04-tool-errors/run.py` (add `--port 8123` for the working setup) |
 | `bugs/05-cold-start` | First run times out while `uvx` downloads the server | `uv cache clean`, then `uv run python bugs/05-cold-start/measure.py --timeout 8 --tool-call` (failure) or without options (timing) |
 
 Versions and measurements: [`docs/versions.md`](docs/versions.md).

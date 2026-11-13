@@ -20,12 +20,16 @@ Checked on 5 November 2026.
 - `print()` in a tool, SDK 2.3, buffered: the line reaches stdout at shutdown, after the guard is lifted.
 - mcp-clickhouse on port 9000: explicit message, returned as a successful result with `"isError": true`.
 - FastMCP checks PyPI for updates at startup (`GET https://pypi.org/pypi/fastmcp/json`).
+- FastMCP 4.1.6 handles requests on stdio concurrently: a fast call sent second is answered before a slow call sent first (bug 02).
+- Unknown tool name: FastMCP 4.1.6 and mcp-clickhouse 0.7.0 answer with a successful result, `isError: true`, `"Unknown tool: '...'"`. Spec 2025-06-18 lists unknown tools as a protocol error (example: `-32602 "Unknown tool: ..."`); the 2026-07-28 text was not checked.
+- Real protocol errors come from a wrong method (`-32601 "Method not found"`) or malformed params (`-32602`).
+- Spec 2025-06-18, tools, security considerations: clients SHOULD validate tool results before passing them to the LLM.
 
 ## Cold start of `uvx mcp-clickhouse` (MacBook Air M5)
 
 | Cache state | Time to first response |
 | --- | --- |
-| Empty (`uv cache clean`) | 37.22 s |
+| Empty (`uv cache clean`) | 37.22 s, 18.22 s (two runs) |
 | Partial (dependencies cached) | about 8 s |
 | Warm | 0.55 s, 0.50 s, 0.50 s |
 

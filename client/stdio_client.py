@@ -62,6 +62,10 @@ class RawStdioClient:
             line = self._lines.get(timeout=timeout)
         except queue.Empty:
             print(f"   (no message within {timeout:.0f}s)")
+            exit_code = self.proc.poll()
+            if exit_code is not None:
+                print(f"   (the server process exited with code {exit_code}: it never started"
+                      " properly; run it by hand to see the error)")
             return None
         self.transcript.append(line)
         print(f"<- {describe(line)}")
@@ -81,6 +85,29 @@ class RawStdioClient:
             if isinstance(message, dict) and message.get("id") == request_id:
                 return message
         return None
+
+    def collect(self, request_ids: list[int], timeout: float = 10.0) -> dict[int, dict]:
+        """Read until every listed request has its response, matching them by id.
+
+        Messages without an id (notifications) and unexpected ids are logged and
+        skipped, so responses can arrive in any order.
+        """
+        pending = set(request_ids)
+        responses: dict[int, dict] = {}
+        deadline = time.monotonic() + timeout
+        while pending and (remaining := deadline - time.monotonic()) > 0:
+            line = self.read_line(timeout=remaining)
+            if line is None:
+                break
+            try:
+                message = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            request_id = message.get("id") if isinstance(message, dict) else None
+            if request_id in pending:
+                responses[request_id] = message
+                pending.discard(request_id)
+        return responses
 
     def close(self, grace: float = 2.0) -> list[str]:
         """Close stdin, let the server exit, and return any lines it printed late."""

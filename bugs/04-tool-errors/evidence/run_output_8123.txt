@@ -1,0 +1,14 @@
+=== mcp-clickhouse with CLICKHOUSE_PORT=8123
+-> {"jsonrpc": "2.0", "id": 1, "method": "tools/execute", "params": {"name": "list_databases", "arguments": {}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}, "io.modelcontextprotocol/clientInfo": {"name": "raw-client", "version": "0.1"}}}}
+-> {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "list_database", "arguments": {}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}, "io.modelcontextprotocol/clientInfo": {"name": "raw-client", "version": "0.1"}}}}
+-> {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "list_databases", "arguments": {}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}, "io.modelcontextprotocol/clientInfo": {"name": "raw-client", "version": "0.1"}}}}
+<- {"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"Method not found","data":"tools/execute"}}
+<- {"jsonrpc":"2.0","id":2,"result":{"content":[{"text":"Unknown tool: 'list_database'","type":"text"}],"isError":true,"resultType":"complete","_meta":{"io.mode...
+<- {"jsonrpc":"2.0","id":3,"result":{"_meta":{"fastmcp":{"wrap_result":true},"io.modelcontextprotocol/serverInfo":{"name":"mcp-clickhouse","version":"0.7.0"}},"...
+
+request            naive client                                             correct client
+wrong method name  STOP  protocol error -32601                              STOP  protocol error -32601
+unknown tool name  MODEL Unknown tool: 'list_database'                      STOP  tool error, kept away from the model
+valid call         MODEL ["INFORMATION_SCHEMA", "default", "informatio...   MODEL ["INFORMATION_SCHEMA", "default", "informatio...
+
+=> the naive client passed 1 error message(s) to the model as if they were data
