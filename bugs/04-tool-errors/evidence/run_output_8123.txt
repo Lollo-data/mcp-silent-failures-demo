@@ -8,7 +8,7 @@
 
 request            naive client                                             correct client
 wrong method name  STOP  protocol error -32601                              STOP  protocol error -32601
-unknown tool name  MODEL Unknown tool: 'list_database'                      STOP  tool error, kept away from the model
+unknown tool name  MODEL Unknown tool: 'list_database'                      ERROR tool error, not passed on as data
 valid call         MODEL ["INFORMATION_SCHEMA", "default", "informatio...   MODEL ["INFORMATION_SCHEMA", "default", "informatio...
 
 => the naive client passed 1 error message(s) to the model as if they were data
