@@ -1,17 +1,22 @@
 """Bug 03: a debug print() in a tool and stdout, the protocol channel.
 
-Same print(), four cases. For each one the demo counts where the debug line
-ends up: on stdout (the protocol channel), on stderr, or nowhere.
+Same print(), five cases, one tool call each. For each one the demo counts
+where the debug line ends up: on stdout (the protocol channel), on stderr, or
+nowhere.
 
-  sdk1           MCP SDK 1.x with PYTHONUNBUFFERED=1 (common in Docker images):
-                 the line lands on the wire before the response.
-  sdk1-buffered  MCP SDK 1.x, default buffering: the SDK closes the real
-                 stdout on shutdown, so the buffered line is silently lost.
-  broken         MCP SDK 2.x guards stdout while serving, but a buffered line
-                 escapes at shutdown, after the guard is lifted.
-  fixed          log to stderr: nothing but JSON-RPC on stdout.
+  sdk1              MCP SDK 1.x with PYTHONUNBUFFERED=1 (common in Docker
+                    images): the line lands on the wire before the response.
+  sdk1-buffered     MCP SDK 1.x, default buffering: the SDK closes the real
+                    stdout on shutdown, so the buffered line is silently lost.
+  broken            MCP SDK 2.x, default buffering: the SDK diverts stdout to
+                    stderr while serving, but the buffered line is flushed
+                    when stdout is restored at shutdown, after the last response.
+  broken-unbuffered MCP SDK 2.x with PYTHONUNBUFFERED=1: the line is written
+                    at once, while the diversion is active, so it lands on
+                    stderr and the protocol channel stays clean.
+  fixed             log to stderr: nothing but JSON-RPC on stdout.
 
-    uv run python bugs/03-stdout-pollution/run.py            # all four
+    uv run python bugs/03-stdout-pollution/run.py            # all five
     uv run python bugs/03-stdout-pollution/run.py sdk1       # just one
 """
 
@@ -27,7 +32,7 @@ from client.stdio_client import RawStdioClient, describe, meta  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 MARKER = "validating"  # appears in every debug line and log line of the servers
-VARIANTS = ("sdk1", "sdk1-buffered", "broken", "fixed")
+VARIANTS = ("sdk1", "sdk1-buffered", "broken", "broken-unbuffered", "fixed")
 
 
 def env_with(unbuffered: bool) -> dict:
@@ -60,11 +65,10 @@ def run_sdk1(unbuffered: bool, stderr_file) -> RawStdioClient:
     return client
 
 
-def run_sdk2(variant: str, stderr_file) -> RawStdioClient:
-    server = [sys.executable, str(HERE / f"server_{variant}.py")]
-    client = RawStdioClient(server, env=env_with(unbuffered=False), stderr_file=stderr_file)
+def run_sdk2(server_name: str, unbuffered: bool, stderr_file) -> RawStdioClient:
+    server = [sys.executable, str(HERE / server_name)]
+    client = RawStdioClient(server, env=env_with(unbuffered), stderr_file=stderr_file)
     call_tool(client, 1, "SELECT 1", with_meta=True)
-    call_tool(client, 2, "SELECT 2", with_meta=True)
     return client
 
 
@@ -75,8 +79,10 @@ def run(variant: str) -> None:
             client = run_sdk1(unbuffered=True, stderr_file=stderr_file)
         elif variant == "sdk1-buffered":
             client = run_sdk1(unbuffered=False, stderr_file=stderr_file)
+        elif variant == "broken-unbuffered":
+            client = run_sdk2("server_broken.py", unbuffered=True, stderr_file=stderr_file)
         else:
-            client = run_sdk2(variant, stderr_file)
+            client = run_sdk2(f"server_{variant}.py", unbuffered=False, stderr_file=stderr_file)
         client.close()
         stderr_file.seek(0)
         on_stderr = sum(MARKER in line for line in stderr_file)
